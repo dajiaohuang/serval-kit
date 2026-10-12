@@ -34,6 +34,13 @@
     public *;
 }
 
+# SVGDiagnostic is instantiated from JNI with its four-argument constructor.
+# Keep the class and all of its members so R8 cannot remove or rewrite that
+# constructor after inlining its Java call sites.
+-keep class com.lynx.serval.svg.SVGRender$SVGDiagnostic {
+    *;
+}
+
 # keep pubic/protect static methods on “SVGRenderEngine”
 -keep public class com.lynx.serval.svg.SVGRenderEngine {
     public static *;
