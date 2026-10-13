@@ -19,8 +19,8 @@ namespace serval::markdown {
 
 class NativeServalMarkdownView;
 
-class NativeMarkdownMeasurer : public MarkdownResourceLoader,
-                               public MarkdownViewMeasureHost {
+class L_EXPORT NativeMarkdownMeasurer : public MarkdownResourceLoader,
+                                        public MarkdownViewMeasureHost {
  public:
   NativeMarkdownMeasurer();
   ~NativeMarkdownMeasurer() override;
