@@ -76,11 +76,22 @@ MarkdownImageRunDelegate::MarkdownImageRunDelegate(
 }
 
 MarkdownImageRunDelegate::MarkdownImageRunDelegate(
-    UIImageView* gif_view, float desire_width, float desire_height,
-    float max_width, float max_height, float border_radius)
-    : MarkdownImageRunDelegate(gif_view.image.size, desire_width, desire_height,
+    UIImage* image, id<IMarkdownResourceDelegate> resource_delegate,
+    float desire_width, float desire_height, float max_width, float max_height,
+    float border_radius)
+    : MarkdownImageRunDelegate(image.size, desire_width, desire_height,
                                max_width, max_height, border_radius) {
-  gif_view_ = gif_view;
+  image_ = image;
+  resource_delegate_ = resource_delegate;
+}
+
+UIImageView* MarkdownImageRunDelegate::GetAnimatedImageView() const {
+  if (animated_image_view_ == nil && resource_delegate_ != nil) {
+    NSCAssert([NSThread isMainThread],
+              @"Animated image views must be loaded on the main thread");
+    animated_image_view_ = [resource_delegate_ loadAnimatedImage:image_];
+  }
+  return animated_image_view_;
 }
 
 MarkdownInlineViewRunDelegate::MarkdownInlineViewRunDelegate(

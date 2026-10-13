@@ -6,6 +6,7 @@
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_IOS_INTERNAL_MARKDOWN_RUN_DELEGATE_IOS_H_
 
 #import <ServalMarkdown/IMarkdownPlatformViewHandle.h>
+#import <ServalMarkdown/IMarkdownResourceDelegate.h>
 #import <UIKit/UIKit.h>
 
 #include <cstdint>
@@ -46,12 +47,14 @@ class MarkdownImageRunDelegate : public MarkdownRunDelegate {
   MarkdownImageRunDelegate(UIImage* _Nullable image, float desire_width,
                            float desire_height, float max_width,
                            float max_height, float border_radius);
-  MarkdownImageRunDelegate(UIImageView* gif_view, float desire_width,
-                           float desire_height, float max_width,
-                           float max_height, float border_radius);
+  MarkdownImageRunDelegate(UIImage* image,
+                           id<IMarkdownResourceDelegate> resource_delegate,
+                           float desire_width, float desire_height,
+                           float max_width, float max_height,
+                           float border_radius);
   ~MarkdownImageRunDelegate() override = default;
   UIImage* _Nullable GetImage() const { return image_; }
-  UIImageView* _Nullable GetGifView() const { return gif_view_; }
+  UIImageView* _Nullable GetAnimatedImageView() const;
   float GetBorderRadius() const { return border_radius_; }
 
  private:
@@ -60,7 +63,8 @@ class MarkdownImageRunDelegate : public MarkdownRunDelegate {
                            float max_height, float border_radius);
 
   UIImage* _Nullable image_{nil};
-  UIImageView* _Nullable gif_view_{nil};
+  __weak id<IMarkdownResourceDelegate> _Nullable resource_delegate_{nil};
+  mutable UIImageView* _Nullable animated_image_view_{nil};
   float border_radius_;
 };
 

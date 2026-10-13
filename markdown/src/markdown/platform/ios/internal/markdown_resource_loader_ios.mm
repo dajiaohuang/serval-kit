@@ -46,19 +46,16 @@ std::shared_ptr<MarkdownDrawable> MarkdownResourceLoaderIOS::LoadImage(
     return nullptr;
   }
   NSString* url = [NSString stringWithUTF8String:src];
-  if ([delegate_ respondsToSelector:@selector(loadGifByURL:)] &&
-      [url hasSuffix:@".gif"]) {
-    UIImageView* gif_view = [delegate_ loadGifByURL:url];
-    if (gif_view == nil) {
-      return nullptr;
-    }
-    return std::make_shared<MarkdownImageRunDelegate>(
-        gif_view, desire_width, desire_height, max_width, max_height,
-        border_radius);
-  }
   UIImage* image = [delegate_ loadImageByURL:url];
   if (image == nil) {
     return nullptr;
+  }
+  if ([delegate_ respondsToSelector:@selector(isAnimatedImage:)] &&
+      [delegate_ respondsToSelector:@selector(loadAnimatedImage:)] &&
+      [delegate_ isAnimatedImage:image]) {
+    return std::make_shared<MarkdownImageRunDelegate>(
+        image, delegate_, desire_width, desire_height, max_width, max_height,
+        border_radius);
   }
   return std::make_shared<MarkdownImageRunDelegate>(
       image, desire_width, desire_height, max_width, max_height, border_radius);
