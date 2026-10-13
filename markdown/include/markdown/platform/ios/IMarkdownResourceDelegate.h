@@ -11,6 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @protocol IMarkdownResourceDelegate <NSObject>
+// Called during layout, which may run off the main thread.
 - (nullable UIImage*)loadImageByURL:(nonnull NSString*)url;
 - (nullable UIFont*)loadFontByFamilyName:(nonnull NSString*)family
                                   Weight:(int)weight
@@ -19,8 +20,12 @@ NS_ASSUME_NONNULL_BEGIN
     (nonnull NSString*)idSelector;
 
 @optional
-// Return a distinct image view for each call. Its image provides the natural size.
-- (nullable UIImageView*)loadGifByURL:(nonnull NSString*)url;
+// Called during layout, which may run off the main thread.
+// Return YES if the image needs an animated image view.
+- (BOOL)isAnimatedImage:(nonnull UIImage*)image;
+// Called on the main thread when preparing to draw an animated image.
+// Return a distinct image view for each call using the already loaded image.
+- (nullable UIImageView*)loadAnimatedImage:(nonnull UIImage*)image;
 @end
 
 NS_ASSUME_NONNULL_END

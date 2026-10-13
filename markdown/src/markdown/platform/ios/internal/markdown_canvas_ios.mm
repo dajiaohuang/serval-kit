@@ -146,7 +146,7 @@ void MarkdownCanvasIOS::DrawRunDelegate(const tttext::RunDelegate* run_delegate,
     CGFloat radius = static_cast<CGFloat>(m_image->GetBorderRadius());
     radius =
         std::min(radius, std::min(rect.size.width, rect.size.height) * 0.5f);
-    UIView* gif_view = m_image->GetGifView();
+    UIView* gif_view = m_image->GetAnimatedImageView();
     if (gif_view != nil) {
       gif_view.frame =
           CGRectOffset(rect, translate_point_.x_, translate_point_.y_);
