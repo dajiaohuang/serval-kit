@@ -203,7 +203,9 @@ public final class MarkdownMeasurer {
   public void setBooleanProp(int key, boolean value) {
     setNumberProp(key, value ? 1 : 0);
   }
-  public void setColorProp(int key, int value) { setNumberProp(key, value); }
+  public void setColorProp(int key, int value) {
+    setNumberProp(key, value & 0xffffffffL);
+  }
   public void setNumberProp(int key, double value) {
     if (mInstance != 0) {
       nativeSetNumberProp(mInstance, key, value);

@@ -229,7 +229,10 @@ public class ServalMarkdownView extends MarkdownGestureView {
   public void setBooleanProp(int key, boolean value) {
     setNumberProp(key, value ? 1 : 0);
   }
-  public void setColorProp(int key, int value) { setNumberProp(key, value); }
+  public void setColorProp(int key, int value) {
+    if (mMeasurer != null)
+      mMeasurer.setColorProp(key, value);
+  }
   public void setNumberProp(int key, double value) {
     if (mMeasurer != null)
       mMeasurer.setNumberProp(key, value);
