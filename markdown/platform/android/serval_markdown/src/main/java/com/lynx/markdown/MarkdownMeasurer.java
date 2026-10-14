@@ -337,11 +337,17 @@ public final class MarkdownMeasurer {
   void setMarkdownView(ServalMarkdownView view) {
     mView = new WeakReference<>(view);
   }
+  void clearMarkdownView(ServalMarkdownView view) {
+    if (mView != null && mView.get() == view) {
+      mView = null;
+    }
+  }
   void requestMeasure() {
+    WeakReference<ServalMarkdownView> viewRef = mView;
     if (mRequestMeasureCallback != null) {
       mRequestMeasureCallback.requestMeasure();
-    } else if (mView != null) {
-      ServalMarkdownView view = mView.get();
+    } else if (viewRef != null) {
+      ServalMarkdownView view = viewRef.get();
       if (view != null) {
         view.requestMeasure();
       }

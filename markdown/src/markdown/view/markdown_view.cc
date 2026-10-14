@@ -71,6 +71,17 @@ void MarkdownView::SetView(MarkdownPlatformView* view) {
   ConsumeRendererBundleIfNeeded();
   view_->RequestDraw();
 }
+void MarkdownView::DetachView() {
+  gesture_.DetachView();
+  renderer_.SetViewContainerHandle(nullptr);
+  renderer_.SetMainView(nullptr);
+  view_ = nullptr;
+  handle_ = nullptr;
+  renderer_data_.exposure_links_.clear();
+  renderer_data_.exposure_images_.clear();
+  exposure_skip_counter_ = 0;
+}
+
 MarkdownContext* MarkdownView::GetMarkdownContext() const {
   return context_.get();
 }

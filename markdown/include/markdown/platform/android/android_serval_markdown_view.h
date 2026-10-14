@@ -23,9 +23,6 @@ class AndroidServalMarkdownView : public AndroidMainView {
   MarkdownView* GetMarkdownView();
 
   void OnRendererFrame(int64_t time);
-
- private:
-  AndroidMarkdownMeasurer* measurer_{nullptr};
 };
 
 }  // namespace serval::markdown

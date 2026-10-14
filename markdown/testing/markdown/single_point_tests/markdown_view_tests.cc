@@ -122,6 +122,68 @@ TEST(MarkdownViewTest, MeasuresWithoutPlatformViewAndBindsViewOnce) {
   EXPECT_FALSE(replacement_view.needs_draw_);
 }
 
+TEST(MarkdownViewTest, DetachRemovesSubviewsAndStopsDrawingToOldView) {
+  auto context = testing::CreateTestMarkdownSharedContext();
+  CountingMarkdownViewMeasureHost measure_host;
+  auto view = std::make_shared<MarkdownView>(nullptr, &measure_host, context);
+  view->SetContent("> first paragraph\n\nsecond paragraph");
+  view->SetEnableSelection(true);
+  view->Measure(MakeMeasureSpec());
+
+  testing::MockMarkdownMainView main_view(context);
+  main_view.AttachDrawable(view);
+  view->SetView(&main_view);
+  view->OnRendererFrame(0);
+  view->SetTextSelection({0, 5});
+  ASSERT_GT(main_view.GetSubviewCount(), 3u);
+
+  view->DetachView();
+
+  EXPECT_FALSE(view->IsBoundToView());
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+  main_view.needs_draw_ = false;
+  view->NeedsDraw();
+  view->OnRendererFrame(1);
+  EXPECT_FALSE(main_view.needs_draw_);
+  EXPECT_EQ(main_view.GetSubviewCount(), 0u);
+}
+
+TEST(MarkdownViewTest, DetachedDocumentSurvivesViewAndBindsNewView) {
+  auto context = testing::CreateTestMarkdownSharedContext();
+  CountingMarkdownViewMeasureHost measure_host;
+  auto view = std::make_shared<MarkdownView>(nullptr, &measure_host, context);
+  view->SetContent("markdown content");
+  view->SetEnableSelection(true);
+  const auto measured_size = view->Measure(MakeMeasureSpec());
+
+  {
+    testing::MockMarkdownMainView main_view(context);
+    main_view.AttachDrawable(view);
+    view->SetView(&main_view);
+    view->OnRendererFrame(0);
+    view->SetTextSelection({0, 5});
+    view->DetachView();
+  }
+
+  view->NeedsDraw();
+  view->SetAnimationStep(1);
+  view->OnLayoutFrame(1);
+  view->OnRendererFrame(1);
+  const auto detached_size = view->Measure(MakeMeasureSpec());
+  EXPECT_FLOAT_EQ(detached_size.width_, measured_size.width_);
+  EXPECT_FLOAT_EQ(detached_size.height_, measured_size.height_);
+
+  testing::MockMarkdownMainView replacement_view(context);
+  replacement_view.AttachDrawable(view);
+  view->SetView(&replacement_view);
+  EXPECT_TRUE(view->IsBoundToView());
+  EXPECT_GE(replacement_view.GetSubviewCount(), 3u);
+  replacement_view.needs_draw_ = false;
+  view->NeedsDraw();
+  EXPECT_TRUE(replacement_view.needs_draw_);
+  view->DetachView();
+}
+
 TEST(MarkdownViewTest, ContentIDComesFromRenderedDocument) {
   testing::MockMarkdownMainView main_view(
       testing::CreateTestMarkdownSharedContext());

@@ -166,6 +166,8 @@ class MarkdownMeasureHostIOS final
   if (view == nullptr || view != bound_view_) {
     return;
   }
+  native_view_->DetachView();
+  view->AttachDrawable(nullptr);
   bound_view_ = nullptr;
 }
 

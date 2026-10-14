@@ -86,11 +86,23 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 - (void)removeSubview:(serval::markdown::MarkdownPlatformView*)subview;
 - (void)removeAllCustomViews;
 - (void)updateInternalDisplayLinkState;
+- (void)onVSync:(CADisplayLink*)sender;
 - (void)onTapGesture:(UITapGestureRecognizer*)recognizer;
 - (void)onLongPressGesture:(UILongPressGestureRecognizer*)recognizer;
 - (void)onPanGesture:(UIPanGestureRecognizer*)recognizer;
 
 - (serval::markdown::MarkdownView*)getMarkdownView;
+@end
+
+@interface MarkdownDisplayLinkTarget : NSObject
+@property(nonatomic, weak) ServalMarkdownView* view;
+- (void)onVSync:(CADisplayLink*)sender;
+@end
+
+@implementation MarkdownDisplayLinkTarget
+- (void)onVSync:(CADisplayLink*)sender {
+  [self.view onVSync:sender];
+}
 @end
 
 @implementation ServalMarkdownView
@@ -111,9 +123,11 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
       [self attachMarkdownMeasurer:[[MarkdownMeasurer alloc] init]];
     }
     [self setupGesture];
-    __unsafe_unretained id weakSelf = self;
+    MarkdownDisplayLinkTarget* displayLinkTarget =
+        [[MarkdownDisplayLinkTarget alloc] init];
+    displayLinkTarget.view = self;
     self.displayLink =
-        [CADisplayLink displayLinkWithTarget:weakSelf
+        [CADisplayLink displayLinkWithTarget:displayLinkTarget
                                     selector:@selector(onVSync:)];
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop]
                            forMode:NSRunLoopCommonModes];

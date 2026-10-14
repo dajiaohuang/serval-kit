@@ -12,10 +12,13 @@ namespace serval::markdown {
 AndroidServalMarkdownView::AndroidServalMarkdownView(JNIEnv* env, jobject view)
     : AndroidMainView(env, view) {}
 
-AndroidServalMarkdownView::~AndroidServalMarkdownView() = default;
+AndroidServalMarkdownView::~AndroidServalMarkdownView() {
+  if (auto* markdown_view = GetMarkdownView(); markdown_view != nullptr) {
+    markdown_view->DetachView();
+  }
+}
 
 void AndroidServalMarkdownView::SetMeasurer(AndroidMarkdownMeasurer* measurer) {
-  measurer_ = measurer;
   measurer->BindView(this);
 }
 
