@@ -46,6 +46,9 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
                std::shared_ptr<MarkdownContext> context);
   ~MarkdownView() override;
   void SetView(MarkdownPlatformView* view);
+  bool IsBoundToView() const { return view_ != nullptr; }
+  // Detach on the renderer thread after layout operations using the view stop.
+  void DetachView();
   MarkdownContext* GetMarkdownContext() const;
   void SetResourceLoader(MarkdownResourceLoader* loader);
   MarkdownResourceLoader* GetResourceLoader() const;

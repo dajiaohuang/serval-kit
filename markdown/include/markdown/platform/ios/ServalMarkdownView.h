@@ -31,6 +31,8 @@ NS_ASSUME_NONNULL_BEGIN
     exposureDelegate;
 
 - (instancetype)initWithCreateMeasurer:(BOOL)createMeasurer;
+// Retains the external measurer until the view is released. Detachment must
+// not overlap layout operations that access the bound platform view.
 - (BOOL)attachMarkdownMeasurer:(nullable MarkdownMeasurer*)measurer;
 
 - (NSString*)getContent:(int)start

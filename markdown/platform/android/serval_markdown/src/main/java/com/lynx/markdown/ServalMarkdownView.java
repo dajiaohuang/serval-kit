@@ -17,6 +17,7 @@ import java.util.HashMap;
 public class ServalMarkdownView extends MarkdownGestureView {
   protected long mInstance = 0;
   protected MarkdownMeasurer mMeasurer = null;
+  private boolean mOwnsMeasurer = false;
   private boolean mDisableInternalVSync = false;
   private boolean mInternalVSyncPosted = false;
   private final Choreographer.FrameCallback mInternalVSyncCallback =
@@ -31,12 +32,15 @@ public class ServalMarkdownView extends MarkdownGestureView {
     setNativeGestureTarget(mInstance);
     if (createMeasurer) {
       setMarkdownMeasurer(new MarkdownMeasurer(context));
+      mOwnsMeasurer = true;
     }
     initialVSync();
     setClipChildren(false);
     setClipToPadding(false);
   }
+  /** Releases this view and its internally created measurer. */
   public void destroy() {
+    mDisableInternalVSync = true;
     clearInternalVSync();
     attachDrawable(0);
     if (mInstance != 0) {
@@ -45,10 +49,19 @@ public class ServalMarkdownView extends MarkdownGestureView {
       setNativeGestureTarget(0);
     }
     if (mMeasurer != null) {
-      mMeasurer.destroy();
+      mMeasurer.clearMarkdownView(this);
+      if (mOwnsMeasurer) {
+        mMeasurer.destroy();
+      }
     }
     mMeasurer = null;
+    mOwnsMeasurer = false;
   }
+  /**
+   * Attaches a borrowed measurer. Callers must finish layout and renderer
+   * operations before destroying either object. The caller remains responsible
+   * for destroying the supplied measurer.
+   */
   public void setMarkdownMeasurer(MarkdownMeasurer measurer) {
     if (mInstance == 0 || mMeasurer != null || measurer == null ||
         measurer.getNativeInstance() == 0) {

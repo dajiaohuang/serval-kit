@@ -77,7 +77,6 @@ class AndroidMarkdownMeasurer : public MarkdownResourceLoader,
   int64_t LoadFont(const char* family, int32_t weight, int32_t style);
 
   std::shared_ptr<MarkdownView> view_;
-  AndroidServalMarkdownView* bound_view_{nullptr};
   lynx::base::android::ScopedWeakGlobalJavaRef<jobject> measurer_ref_;
 
   static struct Methods {

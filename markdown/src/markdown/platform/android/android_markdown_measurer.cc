@@ -113,10 +113,9 @@ void AndroidMarkdownMeasurer::SetExposureListenerEnabled(bool enabled) {
 }
 
 void AndroidMarkdownMeasurer::BindView(AndroidServalMarkdownView* view) {
-  if (view == nullptr || bound_view_ != nullptr) {
+  if (view == nullptr || view_->IsBoundToView()) {
     return;
   }
-  bound_view_ = view;
   view->AttachDrawable(view_);
   view_->SetView(view);
 }

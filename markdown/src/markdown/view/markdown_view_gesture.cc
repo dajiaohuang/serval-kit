@@ -38,6 +38,20 @@ void MarkdownViewGesture::SetViewContainerHandle(
   }
 }
 
+void MarkdownViewGesture::DetachView() {
+  if (selection_highlight_ != nullptr) {
+    handle_->RemoveSubView(selection_highlight_.get());
+    handle_->RemoveSubView(selection_handles_.left_.get());
+    handle_->RemoveSubView(selection_handles_.right_.get());
+  }
+  selection_highlight_ = nullptr;
+  selection_handles_ = {nullptr, nullptr};
+  handle_ = nullptr;
+  is_adjust_start_pos_ = false;
+  is_adjust_end_pos_ = false;
+  ResetPan();
+}
+
 void MarkdownViewGesture::SetRenderer(MarkdownViewRenderer* renderer) {
   renderer_ = renderer;
   ResetPan();
