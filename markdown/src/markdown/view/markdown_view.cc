@@ -108,6 +108,7 @@ void MarkdownView::SetContent(const std::string_view content) {
 }
 void MarkdownView::SetContentID(std::string_view id) {
   measurer_.SetContentID(id);
+  NeedsMeasure();
 }
 void MarkdownView::SetContentComplete(bool complete) {
   layout_data_.content_complete_ = complete;
@@ -166,9 +167,6 @@ void MarkdownView::SetAnimationStep(int32_t animation_step) {
   if (animator_.GetTypewriterDynamicHeight()) {
     measure_host_->RequestMeasure();
   } else {
-    if (view_ != nullptr) {
-      view_->RequestDraw();
-    }
     PublishRendererBundle();
   }
 }
@@ -333,9 +331,6 @@ void MarkdownView::UpdateAnimationStep() {
     if (animator_.GetTypewriterDynamicHeight()) {
       measure_host_->RequestMeasure();
     } else {
-      if (view_ != nullptr) {
-        view_->RequestDraw();
-      }
       PublishRendererBundle();
     }
   }
@@ -396,6 +391,7 @@ void MarkdownView::ConsumeRendererBundleIfNeeded() {
   }
   renderer_.SetMarkdownAnimationType(bundle->animation_type_);
   renderer_.SetMarkdownAnimationStep(bundle->animation_step_);
+  renderer_data_.animation_type_ = bundle->animation_type_;
   renderer_data_.animation_step_ = bundle->animation_step_;
   renderer_.SetContentComplete(bundle->content_complete_);
 }
@@ -588,10 +584,14 @@ bool MarkdownView::IsAnimationComplete() const {
 }
 
 void MarkdownView::SetTextSelection(const Range char_range) {
-  const auto draw_count =
-      animator_.GetAnimationType() == MarkdownAnimationType::kNone
-          ? GetCharCount()
-          : animator_.GetAnimationStep();
+  auto draw_count = renderer_data_.animation_step_;
+  if (renderer_data_.animation_type_ == MarkdownAnimationType::kNone) {
+    const auto page = renderer_data_.document_ == nullptr
+                          ? nullptr
+                          : renderer_data_.document_->GetPage();
+    draw_count =
+        page == nullptr ? 0 : MarkdownSelection::GetPageCharCount(page.get());
+  }
   gesture_.SetTextSelection(char_range, draw_count);
 }
 

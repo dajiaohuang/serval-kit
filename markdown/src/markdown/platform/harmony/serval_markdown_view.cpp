@@ -74,9 +74,7 @@ NativeServalMarkdownView::NativeServalMarkdownView(bool create_measurer) {
 }
 NativeServalMarkdownView::~NativeServalMarkdownView() {
   destroyed_.store(true, std::memory_order_release);
-  if (measurer_ != nullptr) {
-    measurer_->DetachView(this);
-  }
+  DetachMeasurer();
   DisposeGestures();
   HarmonyVSyncManager::RemoveVSyncCallback(this);
   AttachDrawable(nullptr);
@@ -90,6 +88,34 @@ bool NativeServalMarkdownView::SetMeasurer(NativeMarkdownMeasurer* measurer) {
   }
   measurer_ = measurer;
   return true;
+}
+void NativeServalMarkdownView::DetachMeasurer() {
+  if (measurer_ != nullptr) {
+    measurer_->DetachView(this);
+  }
+}
+void NativeServalMarkdownView::DisableInternalVSync(bool disable) {
+  if (internal_vsync_disabled_ == disable) {
+    return;
+  }
+  internal_vsync_disabled_ = disable;
+  if (disable) {
+    HarmonyVSyncManager::RemoveVSyncCallback(this);
+  } else {
+    HarmonyVSyncManager::AddVSyncCallback(this);
+  }
+}
+void NativeServalMarkdownView::SetExternalMeasure(bool external) {
+  external_measure_ = external;
+  MarkNeedsMeasure();
+}
+void NativeServalMarkdownView::SetExternalMeasuredSize(MeasureResult size) {
+  external_measured_size_ = size;
+  MarkNeedsMeasure();
+}
+MeasureResult NativeServalMarkdownView::MeasureDrawable(MeasureSpec spec) {
+  return external_measure_ ? external_measured_size_
+                           : HarmonyCustomView::MeasureDrawable(spec);
 }
 void NativeServalMarkdownView::SetContent(const std::string& content) const {
   measurer_->SetContent(content);
@@ -180,10 +206,19 @@ std::shared_ptr<MarkdownPlatformView> NativeServalMarkdownView::InsertEtsView(
   return view;
 }
 void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
+  if (internal_vsync_disabled_) {
+    return;
+  }
+  if (measurer_ != nullptr) {
+    measurer_->OnLayoutFrame(time_stamp);
+  }
+  OnRendererFrame(time_stamp);
+}
+
+void NativeServalMarkdownView::OnRendererFrame(int64_t frame_time_nanos) {
   cached_view_rect_in_screen_ = CalculateViewRectInScreen();
   if (auto* view = GetMarkdownView(); view != nullptr) {
-    view->OnLayoutFrame(time_stamp / 1000 / 1000);
-    view->OnRendererFrame(time_stamp / 1000 / 1000);
+    view->OnRendererFrame(frame_time_nanos / 1000000);
   }
 }
 
@@ -405,7 +440,7 @@ void NativeServalMarkdownView::DisposeGestures() {
 
 void NativeServalMarkdownView::OnLayout(int32_t offset_x, int32_t offset_y) {
   HarmonyCustomView::OnLayout(offset_x, offset_y);
-  if (measurer_ != nullptr) {
+  if (!external_measure_ && measurer_ != nullptr) {
     measurer_->Align(static_cast<float>(offset_x),
                      static_cast<float>(offset_y));
   }

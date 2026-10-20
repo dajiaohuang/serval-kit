@@ -28,7 +28,7 @@ class HarmonyVSyncManagerImpl {
 
   void AddVSyncCallback(HarmonyVSyncCallback* callback) {
     HarmonyUIThread::RunOnUIThread([this, callback]() {
-      std::lock_guard<std::mutex> guard(callbacks_mutex_);
+      std::lock_guard<std::recursive_mutex> guard(callbacks_mutex_);
       callbacks_.emplace_back(callback);
       if (callbacks_.size() == 1) {
         RequestNextFrame();
@@ -36,9 +36,10 @@ class HarmonyVSyncManagerImpl {
     });
   }
   void RemoveVSyncCallback(HarmonyVSyncCallback* callback) {
-    std::lock_guard<std::mutex> guard(callbacks_mutex_);
+    std::lock_guard<std::recursive_mutex> guard(callbacks_mutex_);
     callbacks_.erase(
-        std::remove(callbacks_.begin(), callbacks_.end(), callback));
+        std::remove(callbacks_.begin(), callbacks_.end(), callback),
+        callbacks_.end());
   }
 
   void RequestNextFrame() const {
@@ -51,9 +52,14 @@ class HarmonyVSyncManagerImpl {
   }
   void OnVSync(int64_t time_stamp) {
     HarmonyUIThread::RunOnUIThread([this, time_stamp]() {
-      std::lock_guard<std::mutex> guard(callbacks_mutex_);
-      for (auto* callback : callbacks_) {
-        callback->OnVSync(time_stamp);
+      std::lock_guard<std::recursive_mutex> guard(callbacks_mutex_);
+      // Callbacks may disable internal VSync while handling their own frame.
+      const auto callbacks = callbacks_;
+      for (auto* callback : callbacks) {
+        if (std::find(callbacks_.begin(), callbacks_.end(), callback) !=
+            callbacks_.end()) {
+          callback->OnVSync(time_stamp);
+        }
       }
 
       // Keep requesting frames while there are attached callbacks. Exposure and
@@ -69,7 +75,7 @@ class HarmonyVSyncManagerImpl {
 
   OH_NativeVSync* vsync_{nullptr};
   std::vector<HarmonyVSyncCallback*> callbacks_;
-  std::mutex callbacks_mutex_;
+  std::recursive_mutex callbacks_mutex_;
 };
 void HarmonyVSyncManager::AddVSyncCallback(HarmonyVSyncCallback* callback) {
   HarmonyVSyncManagerImpl::Instance().AddVSyncCallback(callback);

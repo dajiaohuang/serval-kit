@@ -256,7 +256,7 @@ void HarmonyCustomView::OnMeasure(ArkUI_LayoutConstraint* constraint) {
   MeasureSpec spec{.width_ = static_cast<float>(max_width),
                    .width_mode_ = tttext::LayoutMode::kAtMost,
                    .height_ = static_cast<float>(max_height)};
-  auto size = drawable_->Measure(spec);
+  auto size = MeasureDrawable(spec);
   if (size.width_ > 1e5f || size.height_ > 1e5f || size.width_ == 0 ||
       size.height_ == 0) {
     OH_LOG_Print(LOG_APP, LOG_ERROR, 100, "NativeServalMarkdown",

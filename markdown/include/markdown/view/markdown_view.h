@@ -232,6 +232,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
     bool expose_links_{false};
     bool expose_images_{false};
     std::shared_ptr<MarkdownDocument> document_{nullptr};
+    MarkdownAnimationType animation_type_{MarkdownAnimationType::kNone};
     int32_t animation_step_{0};
     std::unordered_set<ExposureKey, ExposureKey::Hash> exposure_links_;
     std::unordered_set<ExposureKey, ExposureKey::Hash> exposure_images_;

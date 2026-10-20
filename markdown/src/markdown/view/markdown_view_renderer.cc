@@ -182,7 +182,11 @@ void MarkdownViewRenderer::SetMarkdownAnimationStep(int32_t step) {
   const int32_t previous_step = animation_step_;
   animation_step_ = step;
   UpdateTypewriterCursorBounds();
-  UpdateRegionViewsByAnimationStep(previous_step);
+  if (NeedUseRegionView()) {
+    UpdateRegionViewsByAnimationStep(previous_step);
+  } else if (main_view_ != nullptr) {
+    main_view_->RequestDraw();
+  }
 }
 void MarkdownViewRenderer::SetContentComplete(bool complete) {
   if (content_complete_ == complete)

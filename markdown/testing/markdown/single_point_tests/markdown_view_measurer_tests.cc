@@ -33,6 +33,44 @@ TEST(MarkdownViewMeasurerTest, MeasurePlainTextBasic) {
   EXPECT_LE(size.width_, 200);
 }
 
+TEST(MarkdownViewMeasurerTest, SettersPreservePreviouslyMeasuredDocument) {
+  MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
+  measurer.SetContent("original content");
+  measurer.SetContentID("original-id");
+  measurer.SetContentRange({0, 8});
+  MeasureSpec spec{.width_ = 200, .width_mode_ = tttext::LayoutMode::kDefinite};
+  measurer.Measure(spec);
+  const auto original_document = measurer.GetDocument();
+  ASSERT_NE(original_document, nullptr);
+
+  measurer.SetContentID("updated-id");
+
+  EXPECT_EQ(original_document->GetContentID(), "original-id");
+  measurer.Measure(spec);
+  const auto updated_id_document = measurer.GetDocument();
+  EXPECT_NE(updated_id_document, original_document);
+  EXPECT_EQ(updated_id_document->GetContentID(), "updated-id");
+  EXPECT_EQ(original_document->GetContentID(), "original-id");
+
+  measurer.SetContent("updated content");
+  measurer.SetContentRange({1, 7});
+
+  EXPECT_EQ(updated_id_document->GetMarkdownContent(), "original content");
+  EXPECT_EQ(updated_id_document->GetMarkdownContentRange().start_, 0);
+  EXPECT_EQ(updated_id_document->GetMarkdownContentRange().end_, 8);
+
+  measurer.Measure(spec);
+  const auto updated_document = measurer.GetDocument();
+  EXPECT_NE(updated_document, updated_id_document);
+  EXPECT_EQ(updated_document->GetMarkdownContent(), "updated content");
+  EXPECT_EQ(updated_document->GetContentID(), "updated-id");
+  EXPECT_EQ(updated_document->GetMarkdownContentRange().start_, 1);
+  EXPECT_EQ(updated_document->GetMarkdownContentRange().end_, 7);
+  EXPECT_EQ(updated_id_document->GetMarkdownContent(), "original content");
+  EXPECT_EQ(updated_id_document->GetMarkdownContentRange().start_, 0);
+  EXPECT_EQ(updated_id_document->GetMarkdownContentRange().end_, 8);
+}
+
 TEST(MarkdownViewMeasurerTest, ContentRangeAffectsHeight) {
   MarkdownViewMeasurer measurer(testing::CreateTestMarkdownSharedContext());
   measurer.SetSourceType(SourceType::kMarkdown);

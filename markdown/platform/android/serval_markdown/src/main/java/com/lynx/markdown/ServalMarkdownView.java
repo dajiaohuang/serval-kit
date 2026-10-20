@@ -20,6 +20,8 @@ public class ServalMarkdownView extends MarkdownGestureView {
   private boolean mOwnsMeasurer = false;
   private boolean mDisableInternalVSync = false;
   private boolean mInternalVSyncPosted = false;
+  private boolean mExternalMeasure = false;
+  private long mExternalMeasuredSize = 0;
   private final Choreographer.FrameCallback mInternalVSyncCallback =
       this::onVSync;
 
@@ -73,6 +75,22 @@ public class ServalMarkdownView extends MarkdownGestureView {
     mMeasurer = measurer;
   }
   public MarkdownMeasurer getMarkdownMeasurer() { return mMeasurer; }
+  /**
+   * UI-thread API. Enables host-managed document measurement and alignment.
+   * Disabled by default.
+   */
+  public void setExternalMeasure(boolean external) {
+    mExternalMeasure = external;
+    requestMeasure();
+  }
+  /**
+   * UI-thread API. Supplies the host's measured size in physical pixels, packed
+   * as returned by {@link MarkdownMeasurer#measure(int, int)}.
+   */
+  public void setExternalMeasuredSize(long size) {
+    mExternalMeasuredSize = size;
+    requestMeasure();
+  }
   public void setResourceLoader(IResourceLoader loader) {
     if (mMeasurer != null)
       mMeasurer.setResourceLoader(loader);
@@ -87,8 +105,25 @@ public class ServalMarkdownView extends MarkdownGestureView {
   }
   public void requestMeasure() { requestLayout(); }
   @Override
+  protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+    if (mExternalMeasure) {
+      setMeasuredDimension(
+          MarkdownValuePack.unpackMeasureResultWidth(mExternalMeasuredSize),
+          MarkdownValuePack.unpackMeasureResultHeight(mExternalMeasuredSize));
+      invalidate();
+    } else {
+      super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+  }
+  @Override
+  public int getBaseline() {
+    return mExternalMeasure
+        ? MarkdownValuePack.unpackMeasureResultBaseline(mExternalMeasuredSize)
+        : super.getBaseline();
+  }
+  @Override
   protected void alignDrawable(int left, int top) {
-    if (mMeasurer != null) {
+    if (!mExternalMeasure && mMeasurer != null) {
       mMeasurer.align(left, top);
     }
   }

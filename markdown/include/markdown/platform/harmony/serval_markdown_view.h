@@ -31,6 +31,14 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   explicit NativeServalMarkdownView(bool create_measurer);
   ~NativeServalMarkdownView() override;
   bool SetMeasurer(NativeMarkdownMeasurer* measurer);
+  void DetachMeasurer();
+  // UI-thread API. Disable the built-in clock when the host drives frames.
+  void DisableInternalVSync(bool disable);
+  void OnRendererFrame(int64_t frame_time_nanos);
+  // The host supplies content dimensions in physical pixels, from its layout
+  // thread. ArkUI then consumes this snapshot without measuring the document.
+  void SetExternalMeasure(bool external);
+  void SetExternalMeasuredSize(MeasureResult size);
   void SetContent(const std::string& content) const;
   void SetStyle(const ValueMap& style) const;
   void SetConfig(const ValueMap& config);
@@ -71,6 +79,8 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
  protected:
   friend class NativeMarkdownMeasurer;
 
+  MeasureResult MeasureDrawable(MeasureSpec spec) override;
+
   RectF CalculateViewRectInScreen();
   std::shared_ptr<MarkdownPlatformView> InsertEtsView(
       ArkUI_NodeHandle handle,
@@ -102,6 +112,9 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   std::atomic_bool destroyed_{false};
   std::unique_ptr<NativeMarkdownMeasurer> owned_measurer_;
   NativeMarkdownMeasurer* measurer_{nullptr};
+  bool internal_vsync_disabled_{false};
+  bool external_measure_{false};
+  MeasureResult external_measured_size_{};
 };
 }  // namespace serval::markdown
 #endif  // MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_SERVAL_MARKDOWN_VIEW_H_

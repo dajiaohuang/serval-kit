@@ -12,6 +12,7 @@
 
 #include "markdown/parser/markdown_resource_loader.h"
 #include "markdown/platform/harmony/harmony_resource_loader.h"
+#include "markdown/platform/harmony/internal/harmony_animation_clock.h"
 #include "markdown/utils/markdown_value.h"
 #include "markdown/view/markdown_view.h"
 
@@ -32,6 +33,21 @@ class L_EXPORT NativeMarkdownMeasurer : public MarkdownResourceLoader,
   void SetConfig(const ValueMap& config) const;
   MeasureResult Measure(MeasureSpec spec);
   void Align(float left, float top);
+
+  // Layout-thread API. Frame timestamps are in nanoseconds, as on Android/iOS.
+  void OnLayoutFrame(int64_t frame_time_nanos);
+  void PauseAnimation();
+  void ResumeAnimation(int32_t animation_step = -1);
+  int32_t GetAnimationStep() const;
+  void SetAnimationStep(int32_t animation_step) const;
+  void OnImageLoaded(const std::string& url);
+  void OnFontLoaded(const std::string& family, int32_t weight, int32_t style);
+  void SetEventListener(MarkdownEventListener* listener) const;
+  void SetExposureListener(MarkdownExposureListener* listener) const;
+  void SetNumberProp(MarkdownProps prop, double value) const;
+  void SetStringProp(MarkdownProps prop, const std::string& value) const;
+  void SetArrayProp(MarkdownProps prop, ValueArray& value) const;
+  void SetMapProp(MarkdownProps prop, ValueMap& value) const;
 
   bool BindView(NativeServalMarkdownView* view);
   void DetachView(NativeServalMarkdownView* view);
@@ -59,6 +75,7 @@ class L_EXPORT NativeMarkdownMeasurer : public MarkdownResourceLoader,
   NativeServalMarkdownView* bound_view_{nullptr};
   IHarmonyResourceLoader* loader_{nullptr};
   std::function<void()> request_measure_callback_;
+  HarmonyAnimationClock animation_clock_;
   std::unordered_map<ArkUI_NodeHandle, std::shared_ptr<MarkdownPlatformView>>
       view_cache_;
 };

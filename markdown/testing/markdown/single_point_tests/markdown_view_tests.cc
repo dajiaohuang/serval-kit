@@ -199,8 +199,102 @@ TEST(MarkdownViewTest, ContentIDComesFromRenderedDocument) {
   main_view.OnVSync(0);
   EXPECT_EQ(view->GetContentID(), "content-id");
 
+  main_view.needs_measure_ = false;
   view->SetContentID("updated-content-id");
+
+  EXPECT_TRUE(main_view.needs_measure_);
+  EXPECT_EQ(view->GetContentID(), "content-id");
+
+  main_view.Measure(MakeMeasureSpec());
+  EXPECT_EQ(view->GetContentID(), "content-id");
+
+  view->OnRendererFrame(1);
   EXPECT_EQ(view->GetContentID(), "updated-content-id");
+}
+
+TEST(MarkdownViewTest, AnimationRedrawWaitsForRendererFrameWithoutRegionViews) {
+  testing::MockMarkdownMainView main_view(
+      testing::CreateTestMarkdownSharedContext());
+  auto* view = main_view.GetMarkdownView();
+  view->SetContent("rendered animation step");
+  view->SetEnableRegionView(false);
+  view->SetAnimationType(MarkdownAnimationType::kTypewriter);
+  view->SetAnimationVelocity(10);
+  view->SetTypewriterDynamicHeight(false);
+  main_view.Measure(MakeMeasureSpec());
+  view->OnRendererFrame(0);
+  main_view.needs_draw_ = false;
+
+  view->OnLayoutFrame(1000);
+
+  ASSERT_GT(view->GetAnimationStep(), view->GetRenderedAnimationStep());
+  EXPECT_FALSE(main_view.needs_draw_);
+
+  view->OnRendererFrame(1000);
+
+  EXPECT_EQ(view->GetRenderedAnimationStep(), view->GetAnimationStep());
+  EXPECT_TRUE(main_view.needs_draw_);
+  main_view.needs_draw_ = false;
+
+  view->OnRendererFrame(1100);
+
+  EXPECT_FALSE(main_view.needs_draw_);
+
+  view->SetAnimationStep(5);
+
+  EXPECT_FALSE(main_view.needs_draw_);
+  view->OnRendererFrame(1200);
+  EXPECT_EQ(view->GetRenderedAnimationStep(), 5);
+  EXPECT_TRUE(main_view.needs_draw_);
+
+  main_view.needs_draw_ = false;
+  view->PauseRenderUpdate();
+  view->SetAnimationStep(8);
+  view->OnRendererFrame(1300);
+
+  EXPECT_FALSE(main_view.needs_draw_);
+  EXPECT_EQ(view->GetRenderedAnimationStep(), 5);
+
+  view->ResumeRenderUpdate();
+
+  EXPECT_TRUE(main_view.needs_draw_);
+  EXPECT_EQ(view->GetRenderedAnimationStep(), 8);
+}
+
+TEST(MarkdownViewTest, AnimationRedrawsOnlyChangedRegionAfterRendererFrame) {
+  testing::MockMarkdownMainView main_view(
+      testing::CreateTestMarkdownSharedContext());
+  auto* view = main_view.GetMarkdownView();
+  view->SetContent("first\n\nsecond");
+  view->SetAnimationType(MarkdownAnimationType::kTypewriter);
+  view->SetTypewriterDynamicHeight(false);
+  view->SetAnimationStep(1);
+  main_view.Measure(MakeMeasureSpec());
+  view->OnRendererFrame(0);
+  const auto subviews = main_view.GetSubviews();
+  ASSERT_EQ(subviews.size(), 2u);
+  for (auto* subview : subviews) {
+    subview->needs_draw_ = false;
+  }
+  main_view.needs_draw_ = false;
+
+  view->SetAnimationStep(2);
+
+  EXPECT_FALSE(main_view.needs_draw_);
+  for (auto* subview : subviews) {
+    EXPECT_FALSE(subview->needs_draw_);
+  }
+
+  view->OnRendererFrame(1);
+
+  EXPECT_EQ(view->GetRenderedAnimationStep(), 2);
+  size_t redrawn_regions = 0;
+  for (auto* subview : subviews) {
+    if (subview->needs_draw_) {
+      ++redrawn_regions;
+    }
+  }
+  EXPECT_EQ(redrawn_regions, 1u);
 }
 
 TEST(MarkdownViewTest, PausedRenderUpdateKeepsRenderedAnimationStep) {
@@ -230,6 +324,67 @@ TEST(MarkdownViewTest, PausedRenderUpdateKeepsRenderedAnimationStep) {
 
   EXPECT_EQ(view->GetRenderedAnimationStep(), 8);
   EXPECT_TRUE(main_view.needs_draw_);
+}
+
+TEST(MarkdownViewTest, PausedSelectionUsesRenderedAnimationState) {
+  testing::MockMarkdownMainView main_view(
+      testing::CreateTestMarkdownSharedContext());
+  auto* view = main_view.GetMarkdownView();
+  view->SetContent("abcdefghij");
+  view->SetEnableSelection(true);
+  view->SetAnimationType(MarkdownAnimationType::kTypewriter);
+  view->SetTypewriterDynamicHeight(false);
+  view->SetAnimationStep(2);
+  main_view.Measure(MakeMeasureSpec());
+  view->OnRendererFrame(0);
+  view->PauseRenderUpdate();
+
+  view->SetAnimationStep(6);
+  view->OnRendererFrame(1);
+  view->SetTextSelection({0, 10});
+
+  EXPECT_EQ(view->GetSelectedRange().end_, 2);
+  EXPECT_EQ(view->GetSelectedText(), "ab");
+
+  view->SetAnimationType(MarkdownAnimationType::kNone);
+  main_view.Measure(MakeMeasureSpec());
+  view->OnRendererFrame(2);
+  view->SetTextSelection({0, 10});
+
+  EXPECT_EQ(view->GetSelectedRange().end_, 2);
+  EXPECT_EQ(view->GetSelectedText(), "ab");
+
+  view->ResumeRenderUpdate();
+  view->SetTextSelection({0, 10});
+
+  EXPECT_EQ(view->GetSelectedRange().end_, 10);
+  EXPECT_EQ(view->GetSelectedText(), "abcdefghij\n");
+}
+
+TEST(MarkdownViewTest, SelectionUsesRenderedDocumentUntilNextRendererFrame) {
+  testing::MockMarkdownMainView main_view(
+      testing::CreateTestMarkdownSharedContext());
+  auto* view = main_view.GetMarkdownView();
+  view->SetContent("**ab**");
+  view->SetEnableSelection(true);
+  main_view.Measure(MakeMeasureSpec());
+
+  view->SetTextSelection({0, 10});
+  EXPECT_EQ(view->GetSelectedRange().end_, 0);
+
+  view->OnRendererFrame(0);
+  view->SetContent("**abcdefghij**");
+  main_view.Measure(MakeMeasureSpec());
+  view->SetTextSelection({0, 10});
+
+  EXPECT_EQ(view->GetSelectedRange().end_, 2);
+  EXPECT_EQ(view->GetSelectedText(), "ab\n");
+
+  view->OnRendererFrame(1);
+  view->SetTextSelection({0, 10});
+
+  EXPECT_EQ(view->GetSelectedRange().end_, 10);
+  EXPECT_EQ(view->GetSelectedText(), "abcdefghij\n");
 }
 
 TEST(MarkdownViewTest, CreatesSelectionSubviewsAfterBindingView) {

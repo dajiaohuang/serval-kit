@@ -34,6 +34,11 @@ NS_ASSUME_NONNULL_BEGIN
 // Retains the external measurer until the view is released. Detachment must
 // not overlap layout operations that access the bound platform view.
 - (BOOL)attachMarkdownMeasurer:(nullable MarkdownMeasurer*)measurer;
+// UI-thread APIs. External measurement is disabled by default. When enabled,
+// the host manages document measurement and alignment, and supplies its measured
+// size in points for UIKit to consume.
+- (void)setExternalMeasure:(BOOL)external;
+- (void)setExternalMeasuredSize:(ServalMarkdownMeasureResult)size;
 
 - (NSString*)getContent:(int)start
                     end:(int)end

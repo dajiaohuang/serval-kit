@@ -72,6 +72,8 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 @interface ServalMarkdownView () <UIGestureRecognizerDelegate> {
   std::unique_ptr<serval::markdown::MarkdownMainViewIOS> markdown_view_handle_;
   BOOL disableInternalVSync_;
+  BOOL externalMeasure_;
+  ServalMarkdownMeasureResult externalMeasuredSize_;
   UITapGestureRecognizer* tapGestureRecognizer_;
   UILongPressGestureRecognizer* longPressGestureRecognizer_;
   UIPanGestureRecognizer* panGestureRecognizer_;
@@ -106,8 +108,24 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 @end
 
 @implementation ServalMarkdownView
+- (ServalMarkdownMeasureResult)
+    measureByWidth:(CGFloat)width
+         WidthMode:(ServalMarkdownLayoutMode)widthMode
+            Height:(CGFloat)height
+        HeightMode:(ServalMarkdownLayoutMode)heightMode {
+  if (externalMeasure_) {
+    return externalMeasuredSize_;
+  }
+  return [super measureByWidth:width
+                     WidthMode:widthMode
+                        Height:height
+                    HeightMode:heightMode];
+}
+
 - (void)alignDrawable:(CGFloat)left top:(CGFloat)top {
-  [self.markdownMeasurer align:left top:top];
+  if (!externalMeasure_) {
+    [self.markdownMeasurer align:left top:top];
+  }
 }
 
 - (instancetype)init {
@@ -153,6 +171,16 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   }
   self.markdownMeasurer = measurer;
   return YES;
+}
+
+- (void)setExternalMeasure:(BOOL)external {
+  externalMeasure_ = external;
+  [self requestMeasure];
+}
+
+- (void)setExternalMeasuredSize:(ServalMarkdownMeasureResult)size {
+  externalMeasuredSize_ = size;
+  [self requestMeasure];
 }
 
 - (void)setupGesture {
