@@ -10,7 +10,9 @@ namespace serval::markdown {
 HarmonyResourceLoaderImpl::HarmonyResourceLoaderImpl(napi_env env)
     : env_(env) {}
 
-OH_Drawing_Font* HarmonyResourceLoaderImpl::LoadFont(const char* family) {
+OH_Drawing_Font* HarmonyResourceLoaderImpl::LoadFont(const char* family,
+                                                     int32_t weight,
+                                                     int32_t style) {
   if (font_loader_.IsNull()) {
     return nullptr;
   }

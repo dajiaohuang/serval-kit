@@ -33,25 +33,17 @@ void MarkdownViewMeasurer::SetEventListener(
 
 void MarkdownViewMeasurer::SetContent(std::string_view content) {
   content_ = content;
-  if (document_ != nullptr) {
-    document_->SetMarkdownContent(content_);
-  }
   NeedsMeasure();
 }
 
 void MarkdownViewMeasurer::SetContentID(std::string_view id) {
   content_id_ = id;
-  if (document_ != nullptr) {
-    document_->SetContentID(content_id_);
-  }
+  NeedsMeasure();
 }
 
 void MarkdownViewMeasurer::SetContentRange(Range range) {
   content_start_ = range.start_;
   content_end_ = range.end_;
-  if (document_ != nullptr) {
-    document_->SetMarkdownContentRange(range);
-  }
   NeedsMeasure();
 }
 

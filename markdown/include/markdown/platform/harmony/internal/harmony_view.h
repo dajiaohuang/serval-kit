@@ -176,6 +176,11 @@ class HarmonyCustomView : public HarmonyView, public MarkdownCustomViewHandle {
   void OnMeasure(ArkUI_LayoutConstraint* constraint) final;
   void OnLayout(int32_t offset_x, int32_t offset_y) override;
   void OnDraw(ArkUI_DrawContext* context) final;
+
+ protected:
+  virtual MeasureResult MeasureDrawable(MeasureSpec spec) {
+    return drawable_->Measure(spec);
+  }
 };
 
 }  // namespace serval::markdown

@@ -6,9 +6,11 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "markdown/element/markdown_context.h"
+#include "markdown/platform/harmony/internal/harmony_utils.h"
 #include "markdown/platform/harmony/internal/harmony_view.h"
 #include "markdown/platform/harmony/markdown_platform_harmony.h"
 #include "markdown/platform/harmony/serval_markdown_view.h"
@@ -18,22 +20,62 @@
 namespace serval::markdown {
 namespace {
 
-std::string GetStringValue(const ValueMap& config, const std::string& key,
-                           const std::string& default_value = "") {
-  if (auto iter = config.find(key);
-      iter != config.end() && iter->second->GetType() == ValueType::kString) {
-    return iter->second->GetString();
+std::unique_ptr<Value> CopyValue(Value& value) {
+  switch (value.GetType()) {
+    case ValueType::kNull:
+      return Value::MakeNull();
+    case ValueType::kBool:
+      return Value::MakeBool(value.AsBool());
+    case ValueType::kInt:
+      return Value::MakeInt(value.AsInt());
+    case ValueType::kLong:
+      return Value::MakeLong(value.AsLong());
+    case ValueType::kDouble:
+      return Value::MakeDouble(value.AsDouble());
+    case ValueType::kString:
+      return Value::MakeString(value.GetString());
+    case ValueType::kArray: {
+      ValueArray array;
+      for (const auto& item : value.AsArray()) {
+        array.emplace_back(CopyValue(*item));
+      }
+      return Value::MakeArray(std::move(array));
+    }
+    case ValueType::kMap: {
+      ValueMap map;
+      for (const auto& [key, item] : value.AsMap()) {
+        map.emplace(key, CopyValue(*item));
+      }
+      return Value::MakeMap(std::move(map));
+    }
   }
-  return default_value;
 }
 
-double GetNumberValue(const ValueMap& config, const std::string& key,
-                      double default_value = 0) {
-  if (auto iter = config.find(key);
-      iter != config.end() && iter->second->GetType() == ValueType::kDouble) {
-    return iter->second->GetDouble();
+int32_t ToFontWeight(MarkdownFontWeight weight) {
+  switch (weight) {
+    case MarkdownFontWeight::kBold:
+      return 700;
+    case MarkdownFontWeight::k100:
+      return 100;
+    case MarkdownFontWeight::k200:
+      return 200;
+    case MarkdownFontWeight::k300:
+      return 300;
+    case MarkdownFontWeight::k400:
+      return 400;
+    case MarkdownFontWeight::k500:
+      return 500;
+    case MarkdownFontWeight::k600:
+      return 600;
+    case MarkdownFontWeight::k700:
+      return 700;
+    case MarkdownFontWeight::k800:
+      return 800;
+    case MarkdownFontWeight::k900:
+      return 900;
+    case MarkdownFontWeight::kNormal:
+      return 400;
   }
-  return default_value;
 }
 
 }  // namespace
@@ -47,6 +89,10 @@ NativeMarkdownMeasurer::NativeMarkdownMeasurer() {
 }
 
 NativeMarkdownMeasurer::~NativeMarkdownMeasurer() {
+  request_measure_callback_ = nullptr;
+  if (bound_view_ != nullptr) {
+    DetachView(bound_view_);
+  }
   auto* markdown_view = GetMarkdownView();
   markdown_view->SetExposureListener(nullptr);
   markdown_view->SetEventListener(nullptr);
@@ -66,53 +112,139 @@ void NativeMarkdownMeasurer::MarkDirty() const {
 }
 
 void NativeMarkdownMeasurer::SetConfig(const ValueMap& config) const {
-  auto* view = GetMarkdownView();
-  if (auto animation_type = GetStringValue(config, "animationType");
-      !animation_type.empty()) {
-    if (animation_type == "typewriter") {
-      view->SetAnimationType(MarkdownAnimationType::kTypewriter);
-    } else if (animation_type == "line-expand") {
-      view->SetAnimationType(MarkdownAnimationType::kLineExpand);
-    } else {
-      view->SetAnimationType(MarkdownAnimationType::kNone);
+  static const std::unordered_map<std::string, MarkdownProps> props = {
+      {"animationType", MarkdownProps::kAnimationType},
+      {"animationVelocity", MarkdownProps::kAnimationVelocity},
+      {"initialAnimationStep", MarkdownProps::kInitialAnimationStep},
+      {"animationFrameRate", MarkdownProps::kAnimationFrameRate},
+      {"textMaxline", MarkdownProps::kTextMaxline},
+      {"markdownMaxHeight", MarkdownProps::kMarkdownMaxHeight},
+      {"contentComplete", MarkdownProps::kContentComplete},
+      {"contentRangeStart", MarkdownProps::kContentRangeStart},
+      {"contentRangeEnd", MarkdownProps::kContentRangeEnd},
+      {"typewriterDynamicHeight", MarkdownProps::kTypewriterDynamicHeight},
+      {"typewriterHeightTransitionDuration",
+       MarkdownProps::kTypewriterHeightTransitionDuration},
+      {"typewriterHeightTransitionPrefetch",
+       MarkdownProps::kTypewriterHeightTransitionPrefetch},
+      {"allowBreakAroundPunctuation",
+       MarkdownProps::kAllowBreakAroundPunctuation},
+      {"enableSelection", MarkdownProps::kEnableTextSelection},
+      {"selectionHandleColor", MarkdownProps::kSelectionHandleColor},
+      {"selectionHighlightColor", MarkdownProps::kSelectionHighlightColor},
+      {"selectionHandleSize", MarkdownProps::kSelectionHandleSize},
+      {"selectionHandleTouchMargin",
+       MarkdownProps::kSelectionHandleTouchMargin},
+      {"exposureTags", MarkdownProps::kExposureTags},
+      {"textMarkAttachments", MarkdownProps::kTextMarkAttachments},
+      {"markdownEffect", MarkdownProps::kMarkdownEffect},
+  };
+  for (const auto& [name, value] : config) {
+    if (const auto prop = props.find(name); prop != props.end()) {
+      switch (value->GetType()) {
+        case ValueType::kBool:
+        case ValueType::kInt:
+        case ValueType::kLong:
+        case ValueType::kDouble:
+          SetNumberProp(prop->second, value->GetDouble());
+          break;
+        case ValueType::kString:
+          if (prop->second == MarkdownProps::kSelectionHandleColor ||
+              prop->second == MarkdownProps::kSelectionHighlightColor) {
+            SetNumberProp(prop->second,
+                          MarkdownStyleReader::ReadColor(value->AsString()));
+          } else {
+            SetStringProp(prop->second, value->AsString());
+          }
+          break;
+        case ValueType::kArray: {
+          // Attachment setters take ownership; SetConfig leaves its input intact.
+          auto copy = CopyValue(*value);
+          SetArrayProp(prop->second, copy->AsArray());
+          break;
+        }
+        case ValueType::kMap:
+          SetMapProp(prop->second, value->AsMap());
+          break;
+        case ValueType::kNull:
+          break;
+      }
+    } else if (name == "contentID" && value->GetType() == ValueType::kString) {
+      view_->SetContentID(value->AsString());
+    } else if (name == "sourceType" && value->GetType() == ValueType::kString) {
+      view_->SetSourceType(value->AsString() == "plainText"
+                               ? SourceType::kPlainText
+                               : SourceType::kMarkdown);
+    } else if (name == "parser" && value->GetType() == ValueType::kString) {
+      view_->SetParserType(value->AsString());
+    } else if (name == "trimParagraphSpaces" &&
+               value->GetType() == ValueType::kBool) {
+      view_->SetTrimParagraphSpaces(value->AsBool());
     }
   }
-  if (auto velocity = GetNumberValue(config, "animationVelocity", -1);
-      velocity >= 0) {
-    view->SetAnimationVelocity(static_cast<float>(velocity));
+  // An explicit step takes precedence over the initial step in the same update.
+  if (const auto step = config.find("animationStep"); step != config.end()) {
+    const auto type = step->second->GetType();
+    if (type == ValueType::kDouble || type == ValueType::kInt ||
+        type == ValueType::kLong) {
+      SetAnimationStep(step->second->GetInt());
+    }
   }
-  if (auto iter = config.find("typewriterDynamicHeight");
-      iter != config.end() && iter->second->GetType() == ValueType::kBool) {
-    view->SetTypewriterDynamicHeight(iter->second->AsBool());
+}
+
+void NativeMarkdownMeasurer::SetNumberProp(MarkdownProps prop,
+                                           double value) const {
+  view_->SetNumberProp(prop, value);
+}
+void NativeMarkdownMeasurer::SetStringProp(MarkdownProps prop,
+                                           const std::string& value) const {
+  view_->SetStringProp(prop, value);
+}
+void NativeMarkdownMeasurer::SetArrayProp(MarkdownProps prop,
+                                          ValueArray& value) const {
+  view_->SetArrayProp(prop, value);
+}
+void NativeMarkdownMeasurer::SetMapProp(MarkdownProps prop,
+                                        ValueMap& value) const {
+  view_->SetMapProp(prop, value);
+}
+void NativeMarkdownMeasurer::SetEventListener(
+    MarkdownEventListener* listener) const {
+  view_->SetEventListener(listener);
+}
+void NativeMarkdownMeasurer::SetExposureListener(
+    MarkdownExposureListener* listener) const {
+  view_->SetExposureListener(listener);
+}
+void NativeMarkdownMeasurer::OnLayoutFrame(int64_t frame_time_nanos) {
+  animation_clock_.OnFrame(frame_time_nanos);
+  if (!animation_clock_.IsPaused()) {
+    view_->OnLayoutFrame(animation_clock_.GetAnimationTimeMs());
   }
-  bool enable_selection = false;
-  if (auto iter = config.find("enableSelection");
-      iter != config.end() && iter->second->GetType() == ValueType::kBool) {
-    enable_selection = iter->second->GetBool();
+}
+void NativeMarkdownMeasurer::PauseAnimation() {
+  animation_clock_.Pause();
+}
+void NativeMarkdownMeasurer::ResumeAnimation(int32_t animation_step) {
+  if (animation_step != -1) {
+    SetAnimationStep(animation_step);
   }
-  view->SetEnableSelection(enable_selection);
-  if (GetStringValue(config, "sourceType") == "plainText") {
-    view->SetSourceType(SourceType::kPlainText);
-  }
-  if (const auto parser = GetStringValue(config, "parser"); !parser.empty()) {
-    view->SetParserType(parser, nullptr);
-  }
-  if (auto color = GetStringValue(config, "selectionHandleColor");
-      !color.empty()) {
-    view->SetSelectionHandleColor(MarkdownStyleReader::ReadColor(color));
-  }
-  if (auto color = GetStringValue(config, "selectionHighlightColor");
-      !color.empty()) {
-    view->SetSelectionHighlightColor(MarkdownStyleReader::ReadColor(color));
-  }
-  if (const auto size = GetNumberValue(config, "selectionHandleSize");
-      size > 0) {
-    view->SetSelectionHandleSize(static_cast<float>(size));
-  }
-  if (const auto margin = GetNumberValue(config, "selectionHandleTouchMargin");
-      margin > 0) {
-    view->SetSelectionHandleTouchMargin(static_cast<float>(margin));
-  }
+  animation_clock_.Resume();
+}
+int32_t NativeMarkdownMeasurer::GetAnimationStep() const {
+  return view_->GetAnimationStep();
+}
+void NativeMarkdownMeasurer::SetAnimationStep(int32_t animation_step) const {
+  view_->SetAnimationStep(animation_step);
+}
+void NativeMarkdownMeasurer::OnImageLoaded(const std::string& url) {
+  view_->OnImageLoaded(url);
+  RequestMeasure();
+}
+void NativeMarkdownMeasurer::OnFontLoaded(const std::string& family,
+                                          int32_t weight, int32_t style) {
+  view_->OnFontLoaded(family, weight, style);
+  RequestMeasure();
 }
 
 MeasureResult NativeMarkdownMeasurer::Measure(MeasureSpec spec) {
@@ -141,6 +273,11 @@ void NativeMarkdownMeasurer::DetachView(NativeServalMarkdownView* view) {
   if (view == nullptr || view != bound_view_) {
     return;
   }
+  view_cache_ = std::move(bound_view_->view_cache_);
+  view_->DetachView();
+  bound_view_->RemoveAllSubViews();
+  bound_view_->AttachDrawable(nullptr);
+  bound_view_->measurer_ = nullptr;
   bound_view_ = nullptr;
 }
 
@@ -153,7 +290,8 @@ void NativeMarkdownMeasurer::RequestMeasure() {
   if (request_measure_callback_) {
     request_measure_callback_();
   } else if (bound_view_ != nullptr) {
-    bound_view_->RequestMeasure();
+    HarmonyUIThread::RunOnUIThread(
+        [view = bound_view_]() { view->RequestMeasure(); });
   }
 }
 
@@ -163,7 +301,9 @@ void NativeMarkdownMeasurer::SetResourceLoader(IHarmonyResourceLoader* loader) {
 
 void* NativeMarkdownMeasurer::LoadFont(const char* family,
                                        MarkdownFontWeight weight) {
-  return loader_ == nullptr ? nullptr : loader_->LoadFont(family);
+  return loader_ == nullptr
+             ? nullptr
+             : loader_->LoadFont(family, ToFontWeight(weight), 0);
 }
 
 std::shared_ptr<MarkdownDrawable> NativeMarkdownMeasurer::LoadInlineView(

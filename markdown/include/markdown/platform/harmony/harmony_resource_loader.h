@@ -4,6 +4,7 @@
 
 #ifndef MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_HARMONY_RESOURCE_LOADER_H_
 #define MARKDOWN_INCLUDE_MARKDOWN_PLATFORM_HARMONY_HARMONY_RESOURCE_LOADER_H_
+#include <cstdint>
 #include <string>
 
 #include "arkui/native_type.h"
@@ -15,7 +16,10 @@ struct HarmonyReplacementView {
 };
 class IHarmonyResourceLoader {
  public:
-  virtual OH_Drawing_Font* LoadFont(const char* family) = 0;
+  // Numeric weight (100..900) and style (0 normal, 1 italic), matching the
+  // Android/iOS resource contract.
+  virtual OH_Drawing_Font* LoadFont(const char* family, int32_t weight,
+                                    int32_t style) = 0;
   virtual ArkUI_NodeHandle LoadImageView(const char* src, float desire_width,
                                          float desire_height, float max_width,
                                          float max_height,

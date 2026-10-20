@@ -14,7 +14,8 @@ class HarmonyResourceLoaderImpl final : public IHarmonyResourceLoader {
   explicit HarmonyResourceLoaderImpl(napi_env env);
   ~HarmonyResourceLoaderImpl() = default;
 
-  OH_Drawing_Font* LoadFont(const char* family) override;
+  OH_Drawing_Font* LoadFont(const char* family, int32_t weight,
+                            int32_t style) override;
   ArkUI_NodeHandle LoadImageView(const char* src, float desire_width,
                                  float desire_height, float max_width,
                                  float max_height,
