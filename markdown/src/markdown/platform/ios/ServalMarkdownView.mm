@@ -266,6 +266,10 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
 }
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer*)gestureRecognizer {
+  if (gestureRecognizer == longPressGestureRecognizer_) {
+    auto* markdown_view = [self getMarkdownView];
+    return markdown_view != nullptr && markdown_view->IsSelectionEnabled();
+  }
   if (![gestureRecognizer isKindOfClass:UIPanGestureRecognizer.class]) {
     return YES;
   }
