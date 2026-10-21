@@ -88,6 +88,7 @@ class L_EXPORT MarkdownView final : public MarkdownDrawable {
   void SetTypewriterHeightTransitionPrefetch(bool enable);
 
   void SetEnableSelection(bool enable_selection);
+  bool IsSelectionEnabled() const { return gesture_.IsSelectionEnabled(); }
   void SetSelectionHandleSize(float size);
   void SetSelectionHandleTouchMargin(float margin);
   void SetSelectionHandleColor(uint32_t color);

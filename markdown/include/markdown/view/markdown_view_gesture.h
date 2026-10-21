@@ -44,6 +44,7 @@ class MarkdownViewGesture {
   void SetEventListener(MarkdownEventListener* listener);
 
   void SetEnableSelection(bool enable_selection);
+  bool IsSelectionEnabled() const { return enable_selection_; }
   void SetSelectionHandleSize(float size);
   void SetSelectionHandleTouchMargin(float margin);
   void SetSelectionHandleColor(uint32_t color);

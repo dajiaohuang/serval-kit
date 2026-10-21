@@ -289,8 +289,13 @@ NativeServalMarkdownView::GestureInterruptDispatcher(
   if (view == nullptr || view->destroyed_.load(std::memory_order_acquire)) {
     return GESTURE_INTERRUPT_RESULT_REJECT;
   }
-  if (recognizer == view->tap_ || recognizer == view->long_press_ ||
-      recognizer == view->long_press_pan_group_) {
+  if (recognizer == view->long_press_) {
+    auto* markdown_view = view->GetMarkdownView();
+    return markdown_view != nullptr && markdown_view->IsSelectionEnabled()
+               ? GESTURE_INTERRUPT_RESULT_CONTINUE
+               : GESTURE_INTERRUPT_RESULT_REJECT;
+  }
+  if (recognizer == view->tap_ || recognizer == view->long_press_pan_group_) {
     return GESTURE_INTERRUPT_RESULT_CONTINUE;
   }
   if (recognizer != view->pan_) {
