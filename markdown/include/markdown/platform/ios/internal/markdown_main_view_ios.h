@@ -35,6 +35,8 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
 
   RectF GetViewRectInScreen() override;
   void OnRendererFrame(int64_t timestamp);
+  void SetExternalRenderRegion(bool external);
+  void SetRenderRegion(RectF region);
 
   MarkdownViewContainerHandle* GetViewContainerHandle() override {
     return static_cast<MarkdownViewContainerHandle*>(this);
@@ -49,6 +51,7 @@ class MarkdownMainViewIOS : public MarkdownCustomViewIOS,
 
   std::vector<std::shared_ptr<MarkdownCustomViewIOS>> subviews_;
   RectF cached_view_rect_in_screen_{};
+  bool external_render_region_{false};
 };
 
 }  // namespace serval::markdown

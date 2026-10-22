@@ -39,6 +39,12 @@ NS_ASSUME_NONNULL_BEGIN
 // size in points for UIKit to consume.
 - (void)setExternalMeasure:(BOOL)external;
 - (void)setExternalMeasuredSize:(ServalMarkdownMeasureResult)size;
+// UI-thread APIs. External render-region control is disabled by default.
+// Disabling restores automatic region calculation on the next frame.
+- (void)setExternalRenderRegion:(BOOL)external;
+// Supply the visible rectangle in view-local points before rendering a frame
+// with external render-region control enabled. Retained until replaced.
+- (void)setRenderRegion:(CGRect)region;
 
 - (NSString*)getContent:(int)start
                     end:(int)end

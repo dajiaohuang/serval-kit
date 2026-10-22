@@ -114,11 +114,21 @@ RectF MarkdownMainViewIOS::CalculateViewRectInScreen() {
 }
 
 void MarkdownMainViewIOS::OnRendererFrame(int64_t timestamp) {
-  cached_view_rect_in_screen_ = CalculateViewRectInScreen();
+  if (!external_render_region_) {
+    cached_view_rect_in_screen_ = CalculateViewRectInScreen();
+  }
   auto* markdown_view = static_cast<MarkdownView*>(GetDrawable());
   if (markdown_view != nullptr) {
     markdown_view->OnRendererFrame(timestamp);
   }
+}
+
+void MarkdownMainViewIOS::SetExternalRenderRegion(bool external) {
+  external_render_region_ = external;
+}
+
+void MarkdownMainViewIOS::SetRenderRegion(RectF region) {
+  cached_view_rect_in_screen_ = region;
 }
 
 RectF MarkdownMainViewIOS::GetViewRectInScreen() {

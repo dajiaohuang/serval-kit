@@ -35,6 +35,12 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   // UI-thread API. Disable the built-in clock when the host drives frames.
   void DisableInternalVSync(bool disable);
   void OnRendererFrame(int64_t frame_time_nanos);
+  // UI-thread API. When enabled, frames retain the host-supplied render region.
+  // Disabling restores automatic region calculation on the next frame.
+  void SetExternalRenderRegion(bool external);
+  // Supply the visible rectangle in view-local physical pixels before rendering
+  // a frame with external render-region control enabled.
+  void SetRenderRegion(RectF region);
   // The host supplies content dimensions in physical pixels, from its layout
   // thread. ArkUI then consumes this snapshot without measuring the document.
   void SetExternalMeasure(bool external);
@@ -113,6 +119,7 @@ class L_EXPORT NativeServalMarkdownView : public HarmonyCustomView,
   std::unique_ptr<NativeMarkdownMeasurer> owned_measurer_;
   NativeMarkdownMeasurer* measurer_{nullptr};
   bool internal_vsync_disabled_{false};
+  bool external_render_region_{false};
   bool external_measure_{false};
   MeasureResult external_measured_size_{};
 };

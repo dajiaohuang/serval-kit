@@ -52,6 +52,15 @@ A host that owns layout and rendering on separate threads should:
    detachment, frame registration and external-size updates belong to the UI
    thread. Host callbacks must dispatch to their owning threads.
 
+To control the visible render region, call `SetExternalRenderRegion(true)` on
+the UI thread, then call `SetRenderRegion(RectF::MakeLTRB(left, top, right,
+bottom))` before `OnRendererFrame()`. The rectangle uses view-local coordinates
+in physical pixels and is retained across frames until replaced. It also drives
+image and link exposure checks. Call `SetExternalRenderRegion(false)` to resume
+automatic screen-based region calculation on the next frame. Automatic region
+updates are enabled by default and are independent of the VSync and measurement
+options above.
+
 `PauseAnimation()` / `ResumeAnimation(step)` control the layout animation
 clock. `MarkdownView::PauseRenderUpdate()` freezes the displayed snapshot, and
 `GetRenderedAnimationStep()` identifies the step actually shown. Hosts can use
