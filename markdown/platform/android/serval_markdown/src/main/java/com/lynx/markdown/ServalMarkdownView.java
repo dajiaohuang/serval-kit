@@ -91,6 +91,26 @@ public class ServalMarkdownView extends MarkdownGestureView {
     mExternalMeasuredSize = size;
     requestMeasure();
   }
+  /**
+   * UI-thread API. Enables host-managed visible render regions. Disabled by
+   * default. Disabling restores automatic calculation on the next frame.
+   */
+  public void setExternalRenderRegion(boolean external) {
+    if (mInstance != 0) {
+      nativeSetExternalRenderRegion(mInstance, external);
+    }
+  }
+  /**
+   * UI-thread API. Supplies the visible rectangle in view-local physical pixels
+   * before rendering a frame with external render-region control enabled. The
+   * rectangle is copied and retained across frames until replaced.
+   */
+  public void setRenderRegion(RectF region) {
+    if (mInstance != 0) {
+      nativeSetRenderRegion(mInstance, region.left, region.top, region.right,
+                            region.bottom);
+    }
+  }
   public void setResourceLoader(IResourceLoader loader) {
     if (mMeasurer != null)
       mMeasurer.setResourceLoader(loader);
@@ -393,4 +413,9 @@ public class ServalMarkdownView extends MarkdownGestureView {
   private native void nativePauseRenderUpdate(long instance);
   private native void nativeResumeRenderUpdate(long instance);
   private native void nativeOnRendererFrame(long instance, long time);
+  private native void nativeSetExternalRenderRegion(long instance,
+                                                    boolean external);
+  private native void nativeSetRenderRegion(long instance, float left,
+                                            float top, float right,
+                                            float bottom);
 }

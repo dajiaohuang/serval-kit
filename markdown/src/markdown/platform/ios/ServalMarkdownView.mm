@@ -183,6 +183,17 @@ serval::markdown::MarkdownSelection::CharRangeType ConvertCharRangeType(
   [self requestMeasure];
 }
 
+- (void)setExternalRenderRegion:(BOOL)external {
+  markdown_view_handle_->SetExternalRenderRegion(external);
+}
+
+- (void)setRenderRegion:(CGRect)region {
+  markdown_view_handle_->SetRenderRegion(serval::markdown::RectF::MakeLTWH(
+      static_cast<float>(region.origin.x), static_cast<float>(region.origin.y),
+      static_cast<float>(region.size.width),
+      static_cast<float>(region.size.height)));
+}
+
 - (void)setupGesture {
   tapGestureRecognizer_ =
       [[UITapGestureRecognizer alloc] initWithTarget:self

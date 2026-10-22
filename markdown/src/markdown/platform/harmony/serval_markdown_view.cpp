@@ -105,6 +105,12 @@ void NativeServalMarkdownView::DisableInternalVSync(bool disable) {
     HarmonyVSyncManager::AddVSyncCallback(this);
   }
 }
+void NativeServalMarkdownView::SetExternalRenderRegion(bool external) {
+  external_render_region_ = external;
+}
+void NativeServalMarkdownView::SetRenderRegion(RectF region) {
+  cached_view_rect_in_screen_ = region;
+}
 void NativeServalMarkdownView::SetExternalMeasure(bool external) {
   external_measure_ = external;
   MarkNeedsMeasure();
@@ -216,7 +222,9 @@ void NativeServalMarkdownView::OnVSync(int64_t time_stamp) {
 }
 
 void NativeServalMarkdownView::OnRendererFrame(int64_t frame_time_nanos) {
-  cached_view_rect_in_screen_ = CalculateViewRectInScreen();
+  if (!external_render_region_) {
+    cached_view_rect_in_screen_ = CalculateViewRectInScreen();
+  }
   if (auto* view = GetMarkdownView(); view != nullptr) {
     view->OnRendererFrame(frame_time_nanos / 1000000);
   }
