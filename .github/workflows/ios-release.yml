@@ -41,7 +41,7 @@ jobs:
     needs: get-version
     runs-on: lynx-darwin-14-medium
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Cocoapods Generate
         run: |
           export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
